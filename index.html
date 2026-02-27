@@ -68,7 +68,7 @@ async function cargarPropiedades() {
     state.cargando = true;
     render();
     
-    const { data, error } = await supabase
+    const { data, error } = await db
         .from('propiedades')
         .select('*')
         .eq('activa', true)
@@ -91,7 +91,7 @@ async function cargarTodasPropiedades() {
     state.cargando = true;
     render();
     
-    const { data, error } = await supabase
+    const { data, error } = await db
         .from('propiedades')
         .select('*')
         .order('created_at', { ascending: false });
