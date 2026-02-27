@@ -5,229 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rodriguez Alberghini | Negocios Inmobiliarios</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
     <style>
         * { font-family: 'Inter', sans-serif; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #dc2626; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-slate-50 antialiased">
-
-<!-- ═══════════════════════════════════════════════════════════════════════════════
-     📁 BASE DE DATOS DE PROPIEDADES
-     
-     🔧 INSTRUCCIONES PARA EDITAR:
-     - Buscá la sección "const PROPIEDADES" más abajo
-     - Cada propiedad tiene: id, tipo, operacion, titulo, barrio, etc.
-     - Para AGREGAR: copiá un objeto y modificá los valores
-     - Para ELIMINAR: borrá el objeto completo
-     - Para EDITAR: cambiá los valores que necesites
-═══════════════════════════════════════════════════════════════════════════════ -->
 
 <div id="app"></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════════════════
-// 📁 BASE DE DATOS - EDITÁ ACÁ TUS PROPIEDADES
+// ⚙️ CONFIGURACIÓN - SUPABASE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const PROPIEDADES = [
-    {
-        id: 1,
-        tipo: "Casa",
-        operacion: "Venta",
-        titulo: "Chalet Clásico c/ Parque",
-        barrio: "Centro",
-        dormitorios: 3,
-        banos: 2,
-        superficie: 250,
-        precio: null,           // null = muestra "Consultar"
-        moneda: null,
-        descripcion: "Excelente chalet ubicado en pleno centro de Balcarce. Cuenta con un amplio living comedor luminoso, cocina separada totalmente equipada, 3 dormitorios con placares empotrados y 2 baños completos. En el exterior ofrece un parque verde de grandes dimensiones, quincho con parrilla y cochera cubierta para dos vehículos. Ideal para familias que buscan comodidad y cercanía a todos los servicios.",
-        caracteristicas: ["Parque", "Quincho", "Parrilla", "Cochera doble", "Placares empotrados"],
-        imagenPrincipal: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800",
-        galeria: [
-            "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=600",
-            "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=600",
-            "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&q=80&w=600"
-        ],
-        destacada: true
-    },
-    {
-        id: 2,
-        tipo: "Departamento",
-        operacion: "Alquiler",
-        titulo: "Piso Moderno a Estrenar",
-        barrio: "Cerro El Triunfo",
-        dormitorios: 2,
-        banos: 1,
-        superficie: 85,
-        precio: 180000,
-        moneda: "ARS",
-        descripcion: "Departamento de categoría a estrenar con excelente ubicación. Living comedor amplio con balcón terraza, cocina integrada con mesada de granito, 2 dormitorios con placard y baño completo. Edificio con cochera opcional y espacios comunes.",
-        caracteristicas: ["Balcón terraza", "Cocina integrada", "A estrenar", "Luminoso"],
-        imagenPrincipal: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800",
-        galeria: [
-            "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=600",
-            "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=600"
-        ],
-        destacada: true
-    },
-    {
-        id: 3,
-        tipo: "Terreno",
-        operacion: "Venta",
-        titulo: "Lote Barrio Privado",
-        barrio: "Barrio Cerrado",
-        dormitorios: null,
-        banos: null,
-        superficie: 800,
-        precio: 45000,
-        moneda: "USD",
-        descripcion: "Excelente lote en barrio privado con seguridad 24hs. Terreno llano, ideal para construir la casa de tus sueños. Cuenta con todos los servicios: agua, luz, gas natural y cloacas. Entorno arbolado y tranquilo.",
-        caracteristicas: ["Seguridad 24hs", "Todos los servicios", "Terreno llano", "Escritura inmediata"],
-        imagenPrincipal: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800",
-        galeria: ["https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600"],
-        destacada: false
-    },
-    {
-        id: 4,
-        tipo: "Local Comercial",
-        operacion: "Alquiler",
-        titulo: "Local en Galería Céntrica",
-        barrio: "Centro",
-        dormitorios: null,
-        banos: 1,
-        superficie: 45,
-        precio: 120000,
-        moneda: "ARS",
-        descripcion: "Local comercial ubicado en galería de alto tránsito peatonal. Vidriera amplia, depósito y baño privado. Ideal para indumentaria, accesorios o servicios profesionales.",
-        caracteristicas: ["Alto tránsito", "Vidriera", "Depósito", "Baño privado"],
-        imagenPrincipal: "https://images.unsplash.com/photo-1582041148888-591cb457636e?auto=format&fit=crop&q=80&w=800",
-        galeria: ["https://images.unsplash.com/photo-1582041148888-591cb457636e?auto=format&fit=crop&q=80&w=600"],
-        destacada: false
-    },
-    {
-        id: 5,
-        tipo: "Casa",
-        operacion: "Venta",
-        titulo: "Chalet de Categoría",
-        barrio: "Villa Kelly",
-        dormitorios: 4,
-        banos: 3,
-        superficie: 320,
-        precio: 180000,
-        moneda: "USD",
-        descripcion: "Imponente chalet de categoría en barrio residencial. Amplios espacios, living con hogar a leña, cocina comedor diario, 4 dormitorios (suite principal con vestidor), 3 baños completos. Jardín parquizado con pileta climatizada y quincho cerrado.",
-        caracteristicas: ["Pileta climatizada", "Suite con vestidor", "Hogar a leña", "Quincho cerrado", "Jardín parquizado"],
-        imagenPrincipal: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=800",
-        galeria: [
-            "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=600",
-            "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=600"
-        ],
-        destacada: true
-    },
-    {
-        id: 6,
-        tipo: "Dúplex",
-        operacion: "Venta",
-        titulo: "Dúplex Luminoso",
-        barrio: "Centro",
-        dormitorios: 2,
-        banos: 2,
-        superficie: 110,
-        precio: 85000,
-        moneda: "USD",
-        descripcion: "Moderno dúplex en planta alta. Living comedor con doble altura y ventanales, cocina equipada, toilette en planta baja. En planta alta: 2 dormitorios con balcón y baño completo. Cochera cubierta incluida.",
-        caracteristicas: ["Doble altura", "Ventanales", "Cochera cubierta", "Balcón"],
-        imagenPrincipal: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=800",
-        galeria: ["https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=600"],
-        destacada: false
-    },
-    {
-        id: 7,
-        tipo: "Quinta",
-        operacion: "Venta",
-        titulo: "Quinta con Pileta",
-        barrio: "Avenidas",
-        dormitorios: 3,
-        banos: 2,
-        superficie: 1500,
-        precio: 120000,
-        moneda: "USD",
-        descripcion: "Hermosa quinta sobre lote de 1500m². Casa principal con 3 dormitorios, living amplio, cocina comedor y galería perimetral. Pileta de material, quincho con parrilla, huerta y frutales. Ideal para descanso o emprendimiento turístico.",
-        caracteristicas: ["Pileta", "Quincho", "Galería perimetral", "Huerta", "Frutales"],
-        imagenPrincipal: "https://images.unsplash.com/photo-1576941089067-2de3ce90715d?auto=format&fit=crop&q=80&w=800",
-        galeria: ["https://images.unsplash.com/photo-1576941089067-2de3ce90715d?auto=format&fit=crop&q=80&w=600"],
-        destacada: true
-    },
-    {
-        id: 8,
-        tipo: "Departamento",
-        operacion: "Alquiler",
-        titulo: "Monoambiente Céntrico",
-        barrio: "Centro",
-        dormitorios: 0,
-        banos: 1,
-        superficie: 35,
-        precio: 95000,
-        moneda: "ARS",
-        descripcion: "Práctico monoambiente totalmente amoblado, ideal para estudiantes o profesionales. Ambiente integrado con kitchenette, baño completo y placard. A metros de la plaza principal.",
-        caracteristicas: ["Amoblado", "Kitchenette", "Céntrico", "Luminoso"],
-        imagenPrincipal: "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?auto=format&fit=crop&q=80&w=800",
-        galeria: ["https://images.unsplash.com/photo-1536376072261-38c75010e6c9?auto=format&fit=crop&q=80&w=600"],
-        destacada: false
-    },
-    {
-        id: 9,
-        tipo: "Terreno",
-        operacion: "Venta",
-        titulo: "Lote Industrial",
-        barrio: "Ruta 226",
-        dormitorios: null,
-        banos: null,
-        superficie: 2000,
-        precio: 60000,
-        moneda: "USD",
-        descripcion: "Amplio lote sobre Ruta 226 con excelente visibilidad comercial. Ideal para galpón, depósito o emprendimiento industrial. Cuenta con luz trifásica y acceso pavimentado.",
-        caracteristicas: ["Sobre ruta", "Luz trifásica", "Acceso pavimentado", "Alta visibilidad"],
-        imagenPrincipal: "https://images.unsplash.com/photo-1513628253939-010e64ac66cd?auto=format&fit=crop&q=80&w=800",
-        galeria: ["https://images.unsplash.com/photo-1513628253939-010e64ac66cd?auto=format&fit=crop&q=80&w=600"],
-        destacada: false
-    },
-    {
-        id: 10,
-        tipo: "Casa",
-        operacion: "Venta",
-        titulo: "Casa a Reciclar",
-        barrio: "Cerro El Triunfo",
-        dormitorios: 2,
-        banos: 1,
-        superficie: 180,
-        precio: 35000,
-        moneda: "USD",
-        descripcion: "Oportunidad única: casa antigua sobre lote de 10x30 en zona residencial. Requiere refacción integral pero ofrece excelente potencial. Ideal para inversores o quien busque personalizar su hogar.",
-        caracteristicas: ["Oportunidad", "Lote amplio", "Zona residencial", "Potencial"],
-        imagenPrincipal: "https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800",
-        galeria: ["https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=600"],
-        destacada: false
-    }
-];
+const SUPABASE_URL = 'https://onrdidddfoomqlrowwmu.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_JIke_HO55LNQeZuTgHImFA_BwWTBE1E';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ⚙️ CONFIGURACIÓN GENERAL
+// ⚙️ CONFIGURACIÓN - MARCA
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const CONFIG = {
@@ -237,24 +40,130 @@ const CONFIG = {
     logoUrl: "https://images.wasi.co/empresas/b20221124082928320437.png",
     heroImage: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=2000",
     aboutImage: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=800",
-    barrios: ["Centro", "Cerro El Triunfo", "Villa Kelly", "Barrio Cerrado", "Avenidas", "Ruta 226"]
+    barrios: ["Centro", "Cerro El Triunfo", "Villa Kelly", "Barrio Cerrado", "Avenidas", "Ruta 226"],
+    tipos: ["Casa", "Departamento", "Terreno", "Local Comercial", "Duplex", "Quinta"]
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 🛠️ CÓDIGO DEL SISTEMA (no es necesario modificar)
+// 🛠️ ESTADO Y FUNCIONES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 let state = {
-    vista: 'home',
+    vista: 'home', // home | detalle | admin | admin-edit
+    propiedades: [],
     propiedadSeleccionada: null,
-    filtros: {
-        tipo: '',
-        operacion: '',
-        dormitorios: '',
-        barrio: ''
-    }
+    propiedadEditando: null,
+    cargando: true,
+    filtros: { tipo: '', operacion: '', dormitorios: '', barrio: '' }
 };
 
+// Detectar si es admin
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('admin') === 'true') {
+    state.vista = 'admin';
+}
+
+// Cargar propiedades desde Supabase
+async function cargarPropiedades() {
+    state.cargando = true;
+    render();
+    
+    const { data, error } = await supabase
+        .from('propiedades')
+        .select('*')
+        .eq('activa', true)
+        .order('destacada', { ascending: false })
+        .order('created_at', { ascending: false });
+    
+    if (error) {
+        console.error('Error cargando propiedades:', error);
+        state.propiedades = [];
+    } else {
+        state.propiedades = data || [];
+    }
+    
+    state.cargando = false;
+    render();
+}
+
+// Cargar todas las propiedades (para admin)
+async function cargarTodasPropiedades() {
+    state.cargando = true;
+    render();
+    
+    const { data, error } = await supabase
+        .from('propiedades')
+        .select('*')
+        .order('created_at', { ascending: false });
+    
+    if (error) {
+        console.error('Error:', error);
+        state.propiedades = [];
+    } else {
+        state.propiedades = data || [];
+    }
+    
+    state.cargando = false;
+    render();
+}
+
+// Guardar propiedad
+async function guardarPropiedad(propiedad) {
+    const caracteristicas = propiedad.caracteristicas_texto 
+        ? propiedad.caracteristicas_texto.split(',').map(c => c.trim()).filter(c => c)
+        : [];
+    
+    const galeria = propiedad.galeria_texto
+        ? propiedad.galeria_texto.split(',').map(g => g.trim()).filter(g => g)
+        : [];
+    
+    const datos = {
+        titulo: propiedad.titulo,
+        tipo: propiedad.tipo,
+        operacion: propiedad.operacion,
+        barrio: propiedad.barrio,
+        dormitorios: propiedad.dormitorios ? parseInt(propiedad.dormitorios) : null,
+        banos: propiedad.banos ? parseInt(propiedad.banos) : null,
+        superficie: parseInt(propiedad.superficie),
+        precio: propiedad.precio ? parseInt(propiedad.precio) : null,
+        moneda: propiedad.moneda || null,
+        descripcion: propiedad.descripcion,
+        caracteristicas: caracteristicas,
+        imagen_principal: propiedad.imagen_principal,
+        galeria: galeria,
+        destacada: propiedad.destacada === 'true' || propiedad.destacada === true,
+        activa: propiedad.activa === 'true' || propiedad.activa === true
+    };
+    
+    let result;
+    if (propiedad.id) {
+        result = await supabase.from('propiedades').update(datos).eq('id', propiedad.id);
+    } else {
+        result = await supabase.from('propiedades').insert([datos]);
+    }
+    
+    if (result.error) {
+        alert('Error al guardar: ' + result.error.message);
+        return false;
+    }
+    
+    return true;
+}
+
+// Eliminar propiedad
+async function eliminarPropiedad(id) {
+    if (!confirm('¿Seguro que querés eliminar esta propiedad?')) return;
+    
+    const { error } = await supabase.from('propiedades').delete().eq('id', id);
+    
+    if (error) {
+        alert('Error al eliminar: ' + error.message);
+    } else {
+        await cargarTodasPropiedades();
+    }
+}
+
+// Formatear precio
 function formatPrecio(precio, moneda) {
     if (!precio) return "Consultar";
     const formatted = new Intl.NumberFormat('es-AR').format(precio);
@@ -263,50 +172,28 @@ function formatPrecio(precio, moneda) {
     return formatted;
 }
 
-function getTiposUnicos() {
-    return [...new Set(PROPIEDADES.map(p => p.tipo))];
-}
-
+// Filtrar propiedades
 function filtrarPropiedades() {
-    let resultado = [...PROPIEDADES];
+    let resultado = [...state.propiedades];
     
-    if (state.filtros.tipo) {
-        resultado = resultado.filter(p => p.tipo === state.filtros.tipo);
-    }
-    if (state.filtros.operacion) {
-        resultado = resultado.filter(p => p.operacion === state.filtros.operacion);
-    }
+    if (state.filtros.tipo) resultado = resultado.filter(p => p.tipo === state.filtros.tipo);
+    if (state.filtros.operacion) resultado = resultado.filter(p => p.operacion === state.filtros.operacion);
     if (state.filtros.dormitorios) {
-        if (state.filtros.dormitorios === "0") {
-            resultado = resultado.filter(p => p.dormitorios === 0);
-        } else if (state.filtros.dormitorios === "1") {
-            resultado = resultado.filter(p => p.dormitorios === 1);
-        } else if (state.filtros.dormitorios === "2") {
-            resultado = resultado.filter(p => p.dormitorios === 2);
-        } else if (state.filtros.dormitorios === "3+") {
-            resultado = resultado.filter(p => p.dormitorios !== null && p.dormitorios >= 3);
-        }
+        if (state.filtros.dormitorios === "0") resultado = resultado.filter(p => p.dormitorios === 0);
+        else if (state.filtros.dormitorios === "1") resultado = resultado.filter(p => p.dormitorios === 1);
+        else if (state.filtros.dormitorios === "2") resultado = resultado.filter(p => p.dormitorios === 2);
+        else if (state.filtros.dormitorios === "3+") resultado = resultado.filter(p => p.dormitorios !== null && p.dormitorios >= 3);
     }
-    if (state.filtros.barrio) {
-        resultado = resultado.filter(p => p.barrio === state.filtros.barrio);
-    }
-    
-    // Ordenar: destacadas primero
-    resultado.sort((a, b) => (b.destacada ? 1 : 0) - (a.destacada ? 1 : 0));
+    if (state.filtros.barrio) resultado = resultado.filter(p => p.barrio === state.filtros.barrio);
     
     return resultado;
 }
 
-function abrirPropiedad(id) {
-    state.propiedadSeleccionada = PROPIEDADES.find(p => p.id === id);
-    state.vista = 'detalle';
-    window.scrollTo(0, 0);
-    render();
-}
-
-function cerrarPropiedad() {
-    state.vista = 'home';
-    state.propiedadSeleccionada = null;
+// Navegación
+function irA(vista, data = null) {
+    state.vista = vista;
+    if (vista === 'detalle') state.propiedadSeleccionada = data;
+    if (vista === 'admin-edit') state.propiedadEditando = data;
     window.scrollTo(0, 0);
     render();
 }
@@ -316,9 +203,12 @@ function actualizarFiltro(campo, valor) {
     render();
 }
 
-function limpiarFiltros() {
-    state.filtros = { tipo: '', operacion: '', dormitorios: '', barrio: '' };
-    render();
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎨 RENDERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function renderLoader() {
+    return `<div class="min-h-screen flex items-center justify-center"><div class="loader"></div></div>`;
 }
 
 function renderPropertyCard(p) {
@@ -326,25 +216,25 @@ function renderPropertyCard(p) {
     const dormsTexto = p.dormitorios === null ? '' : (p.dormitorios === 0 ? 'Mono' : `${p.dormitorios} Dorm`);
     
     return `
-        <div onclick="abrirPropiedad(${p.id})" class="group bg-white rounded-3xl overflow-hidden border border-gray-200 hover:border-red-400 transition-all duration-300 shadow-sm hover:shadow-xl cursor-pointer">
+        <div onclick="irA('detalle', ${p.id})" class="group bg-white rounded-3xl overflow-hidden border border-gray-200 hover:border-red-400 transition-all duration-300 shadow-sm hover:shadow-xl cursor-pointer">
             <div class="relative h-64 overflow-hidden">
                 <div class="absolute top-4 left-4 z-20 ${p.operacion === 'Venta' ? 'bg-red-600' : 'bg-gray-800'} px-3 py-1 rounded-full text-xs font-bold text-white shadow-md">
-                    ${p.operacion.toUpperCase()}
+                    ${p.operacion ? p.operacion.toUpperCase() : 'VENTA'}
                 </div>
                 ${p.destacada ? '<div class="absolute top-4 right-4 z-20 bg-amber-500 px-3 py-1 rounded-full text-xs font-bold text-white shadow-md">⭐ DESTACADA</div>' : ''}
-                <img src="${p.imagenPrincipal}" alt="${p.titulo}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+                <img src="${p.imagen_principal || 'https://via.placeholder.com/800x600?text=Sin+imagen'}" alt="${p.titulo}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" onerror="this.src='https://via.placeholder.com/800x600?text=Sin+imagen'">
             </div>
             <div class="p-6">
-                <span class="text-red-600 text-sm font-bold uppercase tracking-wider">${p.tipo}</span>
+                <span class="text-red-600 text-sm font-bold uppercase tracking-wider">${p.tipo || 'Propiedad'}</span>
                 <h3 class="font-bold text-xl text-gray-900 mt-1 mb-2">${p.titulo}</h3>
                 <div class="flex items-center text-gray-500 text-sm mb-4 gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
-                    ${p.barrio}, Balcarce
+                    ${p.barrio || 'Balcarce'}
                 </div>
                 <div class="flex justify-between items-center border-t border-gray-100 pt-4">
                     <div class="flex gap-4 text-gray-600 text-sm">
-                        ${dormsTexto ? `<span class="flex items-center gap-1">${dormsTexto}</span>` : ''}
-                        <span class="flex items-center gap-1">${p.superficie} m²</span>
+                        ${dormsTexto ? `<span>${dormsTexto}</span>` : ''}
+                        <span>${p.superficie || 0} m²</span>
                     </div>
                     <span class="font-bold text-red-600">${precioTexto}</span>
                 </div>
@@ -355,10 +245,9 @@ function renderPropertyCard(p) {
 
 function renderHome() {
     const propiedades = filtrarPropiedades();
-    const tiposUnicos = getTiposUnicos();
+    const tiposUnicos = [...new Set(state.propiedades.map(p => p.tipo).filter(t => t))];
     
     return `
-        <!-- Navbar -->
         <nav class="fixed w-full z-50 top-0 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
             <div class="container mx-auto px-6 py-4 flex justify-between items-center">
                 <img src="${CONFIG.logoUrl}" alt="${CONFIG.nombreEmpresa}" class="h-12 object-contain">
@@ -367,47 +256,37 @@ function renderHome() {
                     <a href="#proyectos" class="hover:text-red-600 transition-colors">Destacados</a>
                     <a href="#nosotros" class="hover:text-red-600 transition-colors">Quiénes Somos</a>
                 </div>
-                <a href="#contacto" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-6 rounded-full transition-all shadow-lg shadow-red-600/30">
-                    Contáctenos
-                </a>
+                <a href="#contacto" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 px-6 rounded-full transition-all shadow-lg">Contáctenos</a>
             </div>
         </nav>
 
-        <!-- Hero -->
         <header class="relative min-h-[90vh] flex flex-col justify-center items-center overflow-hidden pb-16 pt-20">
             <div class="absolute inset-0 z-0">
                 <img src="${CONFIG.heroImage}" alt="Hero" class="absolute w-full h-full object-cover opacity-30">
                 <div class="absolute inset-0 bg-gradient-to-b from-white/90 via-white/70 to-slate-50 z-10"></div>
             </div>
-
             <div class="relative z-20 container mx-auto px-6 text-center mt-10">
                 <div class="max-w-4xl mx-auto">
-                    <span class="inline-block py-1 px-4 rounded-full bg-red-600/10 text-red-600 font-semibold text-sm tracking-widest uppercase mb-6">
-                        ${CONFIG.ciudad}
-                    </span>
+                    <span class="inline-block py-1 px-4 rounded-full bg-red-600/10 text-red-600 font-semibold text-sm tracking-widest uppercase mb-6">${CONFIG.ciudad}</span>
                     <h1 class="text-4xl md:text-6xl font-bold tracking-tight mb-6 text-gray-900 leading-tight">
-                        Encontrá el lugar <br>
-                        <span class="bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent">ideal para tu familia</span>
+                        Encontrá el lugar<br><span class="bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent">ideal para tu familia</span>
                     </h1>
-                    <p class="text-lg md:text-xl text-gray-600 font-light mt-6 max-w-2xl mx-auto mb-12">
-                        Acompañamos tus proyectos inmobiliarios con transparencia, experiencia y el mejor trato humano.
-                    </p>
+                    <p class="text-lg md:text-xl text-gray-600 font-light mt-6 max-w-2xl mx-auto mb-12">Acompañamos tus proyectos inmobiliarios con transparencia, experiencia y el mejor trato humano.</p>
                 </div>
-
-                <!-- Buscador -->
+                
                 <div id="buscador" class="max-w-5xl mx-auto bg-white/90 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-white shadow-xl">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                         <div class="text-left">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Tipología</label>
                             <select onchange="actualizarFiltro('tipo', this.value)" class="w-full bg-white border border-gray-200 text-gray-800 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all font-medium cursor-pointer">
-                                <option value="" ${state.filtros.tipo === '' ? 'selected' : ''}>Todas</option>
+                                <option value="">Todas</option>
                                 ${tiposUnicos.map(t => `<option value="${t}" ${state.filtros.tipo === t ? 'selected' : ''}>${t}</option>`).join('')}
                             </select>
                         </div>
                         <div class="text-left">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Operación</label>
                             <select onchange="actualizarFiltro('operacion', this.value)" class="w-full bg-white border border-gray-200 text-gray-800 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all font-medium cursor-pointer">
-                                <option value="" ${state.filtros.operacion === '' ? 'selected' : ''}>Todas</option>
+                                <option value="">Todas</option>
                                 <option value="Venta" ${state.filtros.operacion === 'Venta' ? 'selected' : ''}>Venta</option>
                                 <option value="Alquiler" ${state.filtros.operacion === 'Alquiler' ? 'selected' : ''}>Alquiler</option>
                             </select>
@@ -415,17 +294,17 @@ function renderHome() {
                         <div class="text-left">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Dormitorios</label>
                             <select onchange="actualizarFiltro('dormitorios', this.value)" class="w-full bg-white border border-gray-200 text-gray-800 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all font-medium cursor-pointer">
-                                <option value="" ${state.filtros.dormitorios === '' ? 'selected' : ''}>Indistinto</option>
+                                <option value="">Indistinto</option>
                                 <option value="0" ${state.filtros.dormitorios === '0' ? 'selected' : ''}>Monoambiente</option>
-                                <option value="1" ${state.filtros.dormitorios === '1' ? 'selected' : ''}>1 Dormitorio</option>
-                                <option value="2" ${state.filtros.dormitorios === '2' ? 'selected' : ''}>2 Dormitorios</option>
-                                <option value="3+" ${state.filtros.dormitorios === '3+' ? 'selected' : ''}>3+ Dormitorios</option>
+                                <option value="1" ${state.filtros.dormitorios === '1' ? 'selected' : ''}>1</option>
+                                <option value="2" ${state.filtros.dormitorios === '2' ? 'selected' : ''}>2</option>
+                                <option value="3+" ${state.filtros.dormitorios === '3+' ? 'selected' : ''}>3+</option>
                             </select>
                         </div>
                         <div class="text-left">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">Barrio</label>
                             <select onchange="actualizarFiltro('barrio', this.value)" class="w-full bg-white border border-gray-200 text-gray-800 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all font-medium cursor-pointer">
-                                <option value="" ${state.filtros.barrio === '' ? 'selected' : ''}>Todos</option>
+                                <option value="">Todos</option>
                                 ${CONFIG.barrios.map(b => `<option value="${b}" ${state.filtros.barrio === b ? 'selected' : ''}>${b}</option>`).join('')}
                             </select>
                         </div>
@@ -435,23 +314,17 @@ function renderHome() {
             </div>
         </header>
 
-        <!-- Propiedades -->
         <section id="proyectos" class="py-20 relative z-20 bg-slate-50">
             <div class="container mx-auto px-6">
                 <div class="text-center mb-16">
                     <h2 class="text-3xl md:text-5xl font-bold mb-4 text-gray-900">Inmuebles Destacados</h2>
                     <div class="w-24 h-1 bg-red-600 mx-auto mb-6"></div>
-                    <p class="text-gray-600 max-w-2xl mx-auto text-lg">
-                        Explorá las mejores oportunidades en Balcarce y alrededores.
-                    </p>
+                    <p class="text-gray-600 max-w-2xl mx-auto text-lg">Explorá las mejores oportunidades en Balcarce y alrededores.</p>
                 </div>
-
                 ${propiedades.length === 0 ? `
                     <div class="text-center py-20">
-                        <p class="text-gray-500 text-xl">No se encontraron propiedades con los filtros seleccionados.</p>
-                        <button onclick="limpiarFiltros()" class="mt-4 text-red-600 hover:underline font-medium">
-                            Limpiar filtros
-                        </button>
+                        <p class="text-gray-500 text-xl">No se encontraron propiedades.</p>
+                        <button onclick="state.filtros = {tipo:'',operacion:'',dormitorios:'',barrio:''}; render();" class="mt-4 text-red-600 hover:underline font-medium">Limpiar filtros</button>
                     </div>
                 ` : `
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -461,22 +334,19 @@ function renderHome() {
             </div>
         </section>
 
-        <!-- Nosotros -->
-        <section id="nosotros" class="py-24 relative bg-white border-y border-gray-200 overflow-hidden">
-            <div class="container mx-auto px-6 relative z-10">
-                <div class="bg-gray-50 rounded-3xl p-8 md:p-12 lg:p-16 border border-gray-100 shadow-lg max-w-6xl mx-auto">
-                    <div class="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
-                        <div class="w-full md:w-2/5 relative">
+        <section id="nosotros" class="py-24 relative bg-white border-y border-gray-200">
+            <div class="container mx-auto px-6">
+                <div class="bg-gray-50 rounded-3xl p-8 md:p-16 border border-gray-100 shadow-lg max-w-6xl mx-auto">
+                    <div class="flex flex-col md:flex-row items-center gap-12">
+                        <div class="w-full md:w-2/5">
                             <img src="${CONFIG.aboutImage}" alt="Equipo" class="w-full h-auto rounded-2xl border border-gray-200 shadow-md">
                         </div>
                         <div class="w-full md:w-3/5 text-left">
-                            <h2 class="text-3xl md:text-5xl font-bold mb-6 text-gray-900 leading-tight">
-                                Conocemos <span class="bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent">nuestra ciudad.</span>
-                            </h2>
+                            <h2 class="text-3xl md:text-5xl font-bold mb-6 text-gray-900">Conocemos <span class="bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent">nuestra ciudad.</span></h2>
                             <div class="w-16 h-1 bg-red-600 mb-8"></div>
-                            <div class="space-y-6 text-gray-600 text-lg leading-relaxed font-light">
+                            <div class="space-y-6 text-gray-600 text-lg leading-relaxed">
                                 <p>Somos <strong>${CONFIG.nombreEmpresa}</strong>, una inmobiliaria con arraigo y visión de futuro en Balcarce.</p>
-                                <p>Trabajamos cada día para unir familias con sus hogares ideales y asesorar a inversores en decisiones clave de mercado, priorizando siempre la honestidad y la transparencia comercial.</p>
+                                <p>Trabajamos cada día para unir familias con sus hogares ideales, priorizando siempre la honestidad y la transparencia.</p>
                                 <p><em class="text-gray-500">Nuestra misión es cuidar tu patrimonio como si fuera el nuestro.</em></p>
                             </div>
                         </div>
@@ -485,161 +355,110 @@ function renderHome() {
             </div>
         </section>
 
-        <!-- Contacto -->
         <section id="contacto" class="py-24 relative bg-white">
             <div class="container mx-auto px-6 max-w-4xl">
                 <div class="text-center mb-16">
                     <h2 class="text-4xl font-bold mb-4 text-gray-900">Dejanos tu consulta</h2>
-                    <p class="text-gray-600 text-lg">Completá tus datos y contanos qué estás buscando. Te responderemos a la brevedad.</p>
+                    <p class="text-gray-600 text-lg">Completá tus datos y te responderemos a la brevedad.</p>
                 </div>
-
                 <form class="bg-white p-8 md:p-12 rounded-3xl border border-gray-200 shadow-xl">
                     <div class="grid md:grid-cols-2 gap-6 mb-8">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Nombre</label>
-                            <input type="text" class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-5 py-4 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all">
+                            <input type="text" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 focus:outline-none focus:border-red-500 transition-all">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Teléfono</label>
-                            <input type="text" class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-5 py-4 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all">
+                            <input type="text" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 focus:outline-none focus:border-red-500 transition-all">
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Mensaje / Propiedad de interés</label>
-                            <textarea rows="3" class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-5 py-4 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"></textarea>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Mensaje</label>
+                            <textarea rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 focus:outline-none focus:border-red-500 transition-all"></textarea>
                         </div>
                     </div>
-                    <button type="button" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-lg py-5 rounded-xl transition-all shadow-lg hover:-translate-y-1 transform">
-                        Enviar Mensaje
-                    </button>
+                    <button type="button" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-lg py-5 rounded-xl transition-all shadow-lg">Enviar Mensaje</button>
                 </form>
             </div>
         </section>
 
-        <!-- Footer -->
         <footer class="py-10 text-center text-gray-500 text-sm border-t border-gray-200 bg-gray-50">
-            <img src="${CONFIG.logoUrl}" alt="${CONFIG.nombreEmpresa}" class="h-8 mx-auto mb-4 object-contain opacity-50 grayscale hover:grayscale-0 transition-all">
+            <img src="${CONFIG.logoUrl}" alt="${CONFIG.nombreEmpresa}" class="h-8 mx-auto mb-4 opacity-50">
             <p>© 2026 ${CONFIG.nombreEmpresa} | ${CONFIG.slogan}. ${CONFIG.ciudad}.</p>
         </footer>
     `;
 }
 
 function renderDetalle() {
-    const p = state.propiedadSeleccionada;
-    if (!p) return '';
+    const p = state.propiedades.find(prop => prop.id === state.propiedadSeleccionada);
+    if (!p) return '<div class="p-8 text-center">Propiedad no encontrada</div>';
     
     const precioTexto = formatPrecio(p.precio, p.moneda);
+    const caracteristicas = p.caracteristicas || [];
+    const galeria = p.galeria || [];
     
     return `
-        <!-- Header fijo -->
         <div class="fixed top-0 w-full z-50 px-6 py-4 bg-white/95 backdrop-blur-md border-b border-gray-200 flex justify-between items-center shadow-sm">
-            <img src="${CONFIG.logoUrl}" alt="Logo" class="h-8 object-contain cursor-pointer" onclick="cerrarPropiedad()">
-            <button onclick="cerrarPropiedad()" class="text-red-600 border border-red-500/20 bg-red-500/5 px-5 py-2 rounded-full hover:bg-red-600 hover:text-white transition-colors flex items-center gap-2 font-bold text-sm">
+            <img src="${CONFIG.logoUrl}" alt="Logo" class="h-8 object-contain cursor-pointer" onclick="irA('home')">
+            <button onclick="irA('home')" class="text-red-600 border border-red-500/20 bg-red-500/5 px-5 py-2 rounded-full hover:bg-red-600 hover:text-white transition-colors flex items-center gap-2 font-bold text-sm">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 Volver
             </button>
         </div>
 
-        <!-- Hero image -->
         <div class="relative w-full h-[60vh] min-h-[400px] mb-12 mt-16 bg-gray-200">
-            <img src="${p.imagenPrincipal}" alt="${p.titulo}" class="absolute inset-0 w-full h-full object-cover">
+            <img src="${p.imagen_principal || 'https://via.placeholder.com/1200x800'}" alt="${p.titulo}" class="absolute inset-0 w-full h-full object-cover">
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-            
             <div class="absolute bottom-0 left-0 w-full">
                 <div class="container mx-auto px-6 pb-12">
-                    <div class="${p.operacion === 'Venta' ? 'bg-red-600' : 'bg-gray-800'} px-4 py-1.5 rounded-full text-sm font-bold text-white inline-flex items-center mb-4 shadow-lg">
-                        EN ${p.operacion.toUpperCase()}
-                    </div>
+                    <div class="${p.operacion === 'Venta' ? 'bg-red-600' : 'bg-gray-800'} px-4 py-1.5 rounded-full text-sm font-bold text-white inline-flex items-center mb-4 shadow-lg">EN ${(p.operacion || 'VENTA').toUpperCase()}</div>
                     <h1 class="text-4xl md:text-6xl font-bold text-white mb-2 drop-shadow-lg">${p.titulo}</h1>
-                    <p class="text-lg md:text-xl text-gray-200 flex items-center gap-2 drop-shadow-md">
-                        <span class="text-red-500">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
-                        </span>
-                        ${p.barrio}, Balcarce
+                    <p class="text-lg text-gray-200 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                        ${p.barrio || 'Balcarce'}
                     </p>
                 </div>
             </div>
         </div>
 
-        <!-- Contenido -->
         <div class="container mx-auto px-6 max-w-6xl mb-24">
             <div class="grid lg:grid-cols-3 gap-12">
-                <!-- Columna principal -->
                 <div class="lg:col-span-2 space-y-8">
-                    <!-- Descripción -->
                     <div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
-                        <h3 class="text-2xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Descripción de la Propiedad</h3>
-                        <p class="text-gray-600 text-lg leading-relaxed">${p.descripcion}</p>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Descripción</h3>
+                        <p class="text-gray-600 text-lg leading-relaxed">${p.descripcion || 'Sin descripción disponible.'}</p>
                     </div>
-
-                    <!-- Características -->
-                    ${p.caracteristicas && p.caracteristicas.length > 0 ? `
+                    
+                    ${caracteristicas.length > 0 ? `
                         <div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm">
                             <h3 class="text-2xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Características</h3>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                ${p.caracteristicas.map(c => `
-                                    <div class="flex items-center gap-2 text-gray-700">
-                                        <span class="text-red-500">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                        </span>
-                                        ${c}
-                                    </div>
-                                `).join('')}
+                                ${caracteristicas.map(c => `<div class="flex items-center gap-2 text-gray-700"><span class="text-red-500">✓</span> ${c}</div>`).join('')}
                             </div>
                         </div>
                     ` : ''}
-
-                    <!-- Galería -->
-                    ${p.galeria && p.galeria.length > 0 ? `
+                    
+                    ${galeria.length > 0 ? `
                         <div>
                             <h3 class="text-2xl font-bold text-gray-900 mb-6">Galería</h3>
-                            <div class="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory hide-scrollbar">
-                                ${p.galeria.map((img, idx) => `
-                                    <img src="${img}" alt="${p.titulo} - Foto ${idx + 1}" class="snap-center shrink-0 w-[300px] h-[200px] object-cover rounded-xl border border-gray-200">
-                                `).join('')}
+                            <div class="flex overflow-x-auto gap-4 pb-4 hide-scrollbar">
+                                ${galeria.map(img => `<img src="${img}" alt="Foto" class="shrink-0 w-[300px] h-[200px] object-cover rounded-xl border border-gray-200">`).join('')}
                             </div>
                         </div>
                     ` : ''}
                 </div>
 
-                <!-- Sidebar -->
                 <div class="lg:col-span-1">
                     <div class="bg-gray-50 p-8 rounded-3xl border border-gray-200 sticky top-24 shadow-sm">
                         <h3 class="text-xl font-bold text-gray-900 mb-6">Resumen</h3>
-                        
                         <ul class="space-y-4 mb-8 text-gray-600">
-                            <li class="flex justify-between border-b border-gray-200 pb-2">
-                                <span>Operación</span> 
-                                <strong class="text-gray-900">${p.operacion}</strong>
-                            </li>
-                            <li class="flex justify-between border-b border-gray-200 pb-2">
-                                <span>Precio</span> 
-                                <strong class="text-red-600 font-bold">${precioTexto}</strong>
-                            </li>
-                            ${p.dormitorios !== null ? `
-                                <li class="flex justify-between border-b border-gray-200 pb-2">
-                                    <span>Dormitorios</span> 
-                                    <strong class="text-gray-900">${p.dormitorios === 0 ? 'Monoambiente' : p.dormitorios}</strong>
-                                </li>
-                            ` : ''}
-                            ${p.banos !== null ? `
-                                <li class="flex justify-between border-b border-gray-200 pb-2">
-                                    <span>Baños</span> 
-                                    <strong class="text-gray-900">${p.banos}</strong>
-                                </li>
-                            ` : ''}
-                            <li class="flex justify-between border-b border-gray-200 pb-2">
-                                <span>Superficie</span> 
-                                <strong class="text-gray-900">${p.superficie} m²</strong>
-                            </li>
-                            <li class="flex justify-between border-b border-gray-200 pb-2">
-                                <span>Tipo</span> 
-                                <strong class="text-gray-900">${p.tipo}</strong>
-                            </li>
+                            <li class="flex justify-between border-b border-gray-200 pb-2"><span>Operación</span><strong class="text-gray-900">${p.operacion || 'Venta'}</strong></li>
+                            <li class="flex justify-between border-b border-gray-200 pb-2"><span>Precio</span><strong class="text-red-600 font-bold">${precioTexto}</strong></li>
+                            ${p.dormitorios !== null ? `<li class="flex justify-between border-b border-gray-200 pb-2"><span>Dormitorios</span><strong class="text-gray-900">${p.dormitorios === 0 ? 'Monoambiente' : p.dormitorios}</strong></li>` : ''}
+                            ${p.banos ? `<li class="flex justify-between border-b border-gray-200 pb-2"><span>Baños</span><strong class="text-gray-900">${p.banos}</strong></li>` : ''}
+                            <li class="flex justify-between border-b border-gray-200 pb-2"><span>Superficie</span><strong class="text-gray-900">${p.superficie || 0} m²</strong></li>
+                            <li class="flex justify-between border-b border-gray-200 pb-2"><span>Tipo</span><strong class="text-gray-900">${p.tipo || 'Propiedad'}</strong></li>
                         </ul>
-
-                        <button onclick="cerrarPropiedad(); setTimeout(() => document.getElementById('contacto').scrollIntoView({behavior: 'smooth'}), 100);" class="w-full bg-red-600 text-white hover:bg-red-700 font-bold py-4 rounded-xl transition-colors text-lg shadow-md">
-                            Consultar por este Inmueble
-                        </button>
+                        <button onclick="irA('home'); setTimeout(() => document.getElementById('contacto').scrollIntoView({behavior:'smooth'}), 100);" class="w-full bg-red-600 text-white hover:bg-red-700 font-bold py-4 rounded-xl transition-colors text-lg shadow-md">Consultar</button>
                     </div>
                 </div>
             </div>
@@ -647,17 +466,265 @@ function renderDetalle() {
     `;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🔐 PANEL ADMIN
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function renderAdmin() {
+    return `
+        <div class="min-h-screen bg-gray-100">
+            <div class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div class="max-w-7xl mx-auto flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <img src="${CONFIG.logoUrl}" alt="Logo" class="h-10">
+                        <span class="text-xl font-bold text-gray-800">Panel Admin</span>
+                    </div>
+                    <div class="flex gap-3">
+                        <a href="?" class="text-gray-600 hover:text-gray-800 font-medium">Ver sitio</a>
+                        <button onclick="irA('admin-edit', null)" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">+ Nueva Propiedad</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="max-w-7xl mx-auto p-6">
+                <h1 class="text-2xl font-bold text-gray-900 mb-6">Propiedades (${state.propiedades.length})</h1>
+                
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="text-left px-6 py-4 text-xs font-bold text-gray-500 uppercase">Propiedad</th>
+                                <th class="text-left px-6 py-4 text-xs font-bold text-gray-500 uppercase">Tipo</th>
+                                <th class="text-left px-6 py-4 text-xs font-bold text-gray-500 uppercase">Operación</th>
+                                <th class="text-left px-6 py-4 text-xs font-bold text-gray-500 uppercase">Precio</th>
+                                <th class="text-left px-6 py-4 text-xs font-bold text-gray-500 uppercase">Estado</th>
+                                <th class="text-right px-6 py-4 text-xs font-bold text-gray-500 uppercase">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            ${state.propiedades.map(p => `
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <img src="${p.imagen_principal || 'https://via.placeholder.com/60'}" class="w-12 h-12 rounded-lg object-cover">
+                                            <div>
+                                                <div class="font-medium text-gray-900">${p.titulo}</div>
+                                                <div class="text-sm text-gray-500">${p.barrio}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-600">${p.tipo || '-'}</td>
+                                    <td class="px-6 py-4"><span class="${p.operacion === 'Venta' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'} px-2 py-1 rounded-full text-xs font-medium">${p.operacion || 'Venta'}</span></td>
+                                    <td class="px-6 py-4 text-gray-900 font-medium">${formatPrecio(p.precio, p.moneda)}</td>
+                                    <td class="px-6 py-4">
+                                        <span class="${p.activa ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'} px-2 py-1 rounded-full text-xs font-medium">
+                                            ${p.activa ? 'Activa' : 'Inactiva'}
+                                        </span>
+                                        ${p.destacada ? '<span class="ml-1 bg-amber-100 text-amber-700 px-2 py-1 rounded-full text-xs font-medium">⭐</span>' : ''}
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button onclick="irA('admin-edit', ${p.id})" class="text-blue-600 hover:text-blue-800 font-medium mr-3">Editar</button>
+                                        <button onclick="eliminarPropiedad(${p.id})" class="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    ${state.propiedades.length === 0 ? '<div class="p-12 text-center text-gray-500">No hay propiedades cargadas</div>' : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderAdminEdit() {
+    const p = state.propiedadEditando ? state.propiedades.find(prop => prop.id === state.propiedadEditando) : null;
+    const isNew = !p;
+    
+    return `
+        <div class="min-h-screen bg-gray-100">
+            <div class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+                <div class="max-w-4xl mx-auto flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <button onclick="irA('admin')" class="text-gray-600 hover:text-gray-800">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        </button>
+                        <span class="text-xl font-bold text-gray-800">${isNew ? 'Nueva Propiedad' : 'Editar Propiedad'}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="max-w-4xl mx-auto p-6">
+                <form id="formPropiedad" class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                    <input type="hidden" name="id" value="${p?.id || ''}">
+                    
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Título *</label>
+                            <input type="text" name="titulo" value="${p?.titulo || ''}" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo *</label>
+                            <select name="tipo" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500">
+                                ${CONFIG.tipos.map(t => `<option value="${t}" ${p?.tipo === t ? 'selected' : ''}>${t}</option>`).join('')}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Operación *</label>
+                            <select name="operacion" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500">
+                                <option value="Venta" ${p?.operacion === 'Venta' ? 'selected' : ''}>Venta</option>
+                                <option value="Alquiler" ${p?.operacion === 'Alquiler' ? 'selected' : ''}>Alquiler</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Barrio *</label>
+                            <select name="barrio" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500">
+                                ${CONFIG.barrios.map(b => `<option value="${b}" ${p?.barrio === b ? 'selected' : ''}>${b}</option>`).join('')}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Superficie m² *</label>
+                            <input type="number" name="superficie" value="${p?.superficie || ''}" required class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Dormitorios</label>
+                            <input type="number" name="dormitorios" value="${p?.dormitorios ?? ''}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500" placeholder="Dejar vacío para terrenos">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Baños</label>
+                            <input type="number" name="banos" value="${p?.banos ?? ''}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Precio</label>
+                            <input type="number" name="precio" value="${p?.precio ?? ''}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500" placeholder="Dejar vacío para 'Consultar'">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Moneda</label>
+                            <select name="moneda" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500">
+                                <option value="">Sin precio</option>
+                                <option value="USD" ${p?.moneda === 'USD' ? 'selected' : ''}>USD</option>
+                                <option value="ARS" ${p?.moneda === 'ARS' ? 'selected' : ''}>ARS</option>
+                            </select>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                            <textarea name="descripcion" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500">${p?.descripcion || ''}</textarea>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Características (separadas por coma)</label>
+                            <input type="text" name="caracteristicas_texto" value="${(p?.caracteristicas || []).join(', ')}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500" placeholder="Pileta, Quincho, Cochera">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">URL Imagen Principal</label>
+                            <input type="url" name="imagen_principal" value="${p?.imagen_principal || ''}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500" placeholder="https://...">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">URLs Galería (separadas por coma)</label>
+                            <input type="text" name="galeria_texto" value="${(p?.galeria || []).join(', ')}" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500" placeholder="https://..., https://...">
+                        </div>
+                        
+                        <div>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="destacada" value="true" ${p?.destacada ? 'checked' : ''} class="w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                                <span class="text-sm font-medium text-gray-700">Propiedad destacada ⭐</span>
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="activa" value="true" ${p?.activa !== false ? 'checked' : ''} class="w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                                <span class="text-sm font-medium text-gray-700">Propiedad activa (visible en el sitio)</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4 pt-6 border-t border-gray-200">
+                        <button type="submit" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">Guardar Propiedad</button>
+                        <button type="button" onclick="irA('admin')" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🚀 INICIALIZACIÓN
+// ═══════════════════════════════════════════════════════════════════════════════
+
 function render() {
     const app = document.getElementById('app');
-    if (state.vista === 'detalle') {
-        app.innerHTML = renderDetalle();
-    } else {
-        app.innerHTML = renderHome();
+    
+    if (state.cargando) {
+        app.innerHTML = renderLoader();
+        return;
+    }
+    
+    switch (state.vista) {
+        case 'detalle':
+            app.innerHTML = renderDetalle();
+            break;
+        case 'admin':
+            app.innerHTML = renderAdmin();
+            break;
+        case 'admin-edit':
+            app.innerHTML = renderAdminEdit();
+            setTimeout(setupForm, 0);
+            break;
+        default:
+            app.innerHTML = renderHome();
     }
 }
 
-// Inicializar
-render();
+function setupForm() {
+    const form = document.getElementById('formPropiedad');
+    if (form) {
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.destacada = form.querySelector('[name="destacada"]').checked;
+            data.activa = form.querySelector('[name="activa"]').checked;
+            
+            const btn = form.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+            
+            const success = await guardarPropiedad(data);
+            
+            if (success) {
+                await cargarTodasPropiedades();
+                irA('admin');
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Guardar Propiedad';
+            }
+        };
+    }
+}
+
+// Iniciar
+async function init() {
+    if (state.vista === 'admin' || state.vista === 'admin-edit') {
+        await cargarTodasPropiedades();
+    } else {
+        await cargarPropiedades();
+    }
+}
+
+init();
 </script>
 
 </body>
