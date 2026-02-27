@@ -32,7 +32,7 @@ const CONFIG = {
     ciudad: "Balcarce, Buenos Aires",
     logoUrl: "https://images.wasi.co/empresas/b20221124082928320437.png",
     heroImage: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=2000",
-    aboutImage: "https://nlwvnjztfczoiaelysqb.supabase.co/storage/v1/object/public/dual/2lTDZwktIkxjDq0EyG88Z.png",
+    aboutImage: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=800",
     barrios: ["Centro", "Cerro El Triunfo", "Villa Kelly", "Barrio Cerrado", "Avenidas", "Ruta 226"],
     tipos: ["Casa", "Departamento", "Terreno", "Local Comercial", "Duplex", "Quinta"]
 };
@@ -49,6 +49,81 @@ let state = {
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('admin') === 'true') {
     state.vista = 'admin';
+}
+
+// WEBHOOK URL - Configurar aquí tu URL de webhook del CRM
+const WEBHOOK_URL = ''; // Ejemplo: 'https://hooks.zapier.com/...' o 'https://tu-crm.com/webhook'
+
+function generarCaptcha(propiedadId) {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    const elem1 = document.getElementById('captchaNum1_' + propiedadId);
+    const elem2 = document.getElementById('captchaNum2_' + propiedadId);
+    const elemEsperado = document.getElementById('captchaEsperado_' + propiedadId);
+    if (elem1 && elem2 && elemEsperado) {
+        elem1.textContent = num1;
+        elem2.textContent = num2;
+        elemEsperado.value = num1 + num2;
+    }
+}
+
+async function enviarFormulario(event, propiedadId) {
+    event.preventDefault();
+    const form = document.getElementById('contactForm' + propiedadId);
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Validar captcha
+    if (parseInt(data.captcha) !== parseInt(data.captcha_esperado)) {
+        alert('La verificacion es incorrecta. Por favor intenta de nuevo.');
+        generarCaptcha(propiedadId);
+        return;
+    }
+    
+    // Preparar datos para enviar
+    const payload = {
+        nombre: data.nombre,
+        apellido: data.apellido,
+        email: data.email,
+        celular: data.celular,
+        interes: data.interes,
+        propiedad: {
+            id: data.propiedad_id,
+            titulo: data.propiedad_titulo,
+            tipo: data.propiedad_tipo,
+            operacion: data.propiedad_operacion,
+            barrio: data.propiedad_barrio,
+            precio: data.propiedad_precio,
+            url: data.propiedad_url
+        },
+        fecha: new Date().toISOString()
+    };
+    
+    const btn = form.querySelector('button[type="submit"]');
+    const btnTextoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    
+    try {
+        if (WEBHOOK_URL) {
+            await fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                mode: 'no-cors',
+                body: JSON.stringify(payload)
+            });
+        }
+        
+        // Mostrar mensaje de éxito
+        form.innerHTML = '<div class="text-center py-8"><div class="text-5xl mb-4">✓</div><h4 class="text-xl font-bold text-gray-900 mb-2">¡Consulta enviada!</h4><p class="text-gray-600">Nos pondremos en contacto contigo a la brevedad.</p></div>';
+        
+        console.log('Formulario enviado:', payload);
+    } catch (error) {
+        console.error('Error al enviar:', error);
+        alert('Hubo un error al enviar. Por favor intenta de nuevo.');
+        btn.disabled = false;
+        btn.textContent = btnTextoOriginal;
+    }
 }
 
 async function cargarPropiedades() {
@@ -180,7 +255,7 @@ function renderDetalle() {
     let galeriaHTML = '';
     galeria.forEach(img => { galeriaHTML += '<img src="' + img + '" alt="Foto" class="shrink-0 w-[300px] h-[200px] object-cover rounded-xl border border-gray-200">'; });
     
-    return '<div class="fixed top-0 w-full z-50 px-6 py-4 bg-white/95 backdrop-blur-md border-b border-gray-200 flex justify-between items-center shadow-sm"><img src="' + CONFIG.logoUrl + '" alt="Logo" class="h-8 object-contain cursor-pointer" onclick="irA(\'home\')"><button onclick="irA(\'home\')" class="text-red-600 border border-red-500/20 bg-red-500/5 px-5 py-2 rounded-full hover:bg-red-600 hover:text-white transition-colors flex items-center gap-2 font-bold text-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>Volver</button></div><div class="relative w-full h-[60vh] min-h-[400px] mb-12 mt-16 bg-gray-200"><img src="' + (p.imagen_principal || 'https://via.placeholder.com/1200x800') + '" alt="' + p.titulo + '" class="absolute inset-0 w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div><div class="absolute bottom-0 left-0 w-full"><div class="container mx-auto px-6 pb-12"><div class="' + (p.operacion === 'Venta' ? 'bg-red-600' : 'bg-gray-800') + ' px-4 py-1.5 rounded-full text-sm font-bold text-white inline-flex items-center mb-4 shadow-lg">EN ' + (p.operacion || 'VENTA').toUpperCase() + '</div><h1 class="text-4xl md:text-6xl font-bold text-white mb-2 drop-shadow-lg">' + p.titulo + '</h1><p class="text-lg text-gray-200 flex items-center gap-2"><svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>' + (p.barrio || 'Balcarce') + '</p></div></div></div><div class="container mx-auto px-6 max-w-6xl mb-24"><div class="grid lg:grid-cols-3 gap-12"><div class="lg:col-span-2 space-y-8"><div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm"><h3 class="text-2xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Descripcion</h3><p class="text-gray-600 text-lg leading-relaxed">' + (p.descripcion || 'Sin descripcion disponible.') + '</p></div>' + (caracteristicas.length > 0 ? '<div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm"><h3 class="text-2xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Caracteristicas</h3><div class="grid grid-cols-2 md:grid-cols-3 gap-4">' + caracteristicasHTML + '</div></div>' : '') + (galeria.length > 0 ? '<div><h3 class="text-2xl font-bold text-gray-900 mb-6">Galeria</h3><div class="flex overflow-x-auto gap-4 pb-4 hide-scrollbar">' + galeriaHTML + '</div></div>' : '') + '</div><div class="lg:col-span-1"><div class="bg-gray-50 p-8 rounded-3xl border border-gray-200 sticky top-24 shadow-sm"><h3 class="text-xl font-bold text-gray-900 mb-6">Resumen</h3><ul class="space-y-4 mb-8 text-gray-600"><li class="flex justify-between border-b border-gray-200 pb-2"><span>Operacion</span><strong class="text-gray-900">' + (p.operacion || 'Venta') + '</strong></li><li class="flex justify-between border-b border-gray-200 pb-2"><span>Precio</span><strong class="text-red-600 font-bold">' + precioTexto + '</strong></li>' + (p.dormitorios !== null ? '<li class="flex justify-between border-b border-gray-200 pb-2"><span>Dormitorios</span><strong class="text-gray-900">' + (p.dormitorios === 0 ? 'Monoambiente' : p.dormitorios) + '</strong></li>' : '') + (p.banos ? '<li class="flex justify-between border-b border-gray-200 pb-2"><span>Banos</span><strong class="text-gray-900">' + p.banos + '</strong></li>' : '') + '<li class="flex justify-between border-b border-gray-200 pb-2"><span>Superficie</span><strong class="text-gray-900">' + (p.superficie || 0) + ' m2</strong></li><li class="flex justify-between border-b border-gray-200 pb-2"><span>Tipo</span><strong class="text-gray-900">' + (p.tipo || 'Propiedad') + '</strong></li></ul><button onclick="irA(\'home\');setTimeout(function(){document.getElementById(\'contacto\').scrollIntoView({behavior:\'smooth\'});},100);" class="w-full bg-red-600 text-white hover:bg-red-700 font-bold py-4 rounded-xl transition-colors text-lg shadow-md">Consultar</button></div></div></div></div>';
+    return '<div class="fixed top-0 w-full z-50 px-6 py-4 bg-white/95 backdrop-blur-md border-b border-gray-200 flex justify-between items-center shadow-sm"><img src="' + CONFIG.logoUrl + '" alt="Logo" class="h-8 object-contain cursor-pointer" onclick="irA(\'home\')"><button onclick="irA(\'home\')" class="text-red-600 border border-red-500/20 bg-red-500/5 px-5 py-2 rounded-full hover:bg-red-600 hover:text-white transition-colors flex items-center gap-2 font-bold text-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>Volver</button></div><div class="relative w-full h-[60vh] min-h-[400px] mb-12 mt-16 bg-gray-200"><img src="' + (p.imagen_principal || 'https://via.placeholder.com/1200x800') + '" alt="' + p.titulo + '" class="absolute inset-0 w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div><div class="absolute bottom-0 left-0 w-full"><div class="container mx-auto px-6 pb-12"><div class="' + (p.operacion === 'Venta' ? 'bg-red-600' : 'bg-gray-800') + ' px-4 py-1.5 rounded-full text-sm font-bold text-white inline-flex items-center mb-4 shadow-lg">EN ' + (p.operacion || 'VENTA').toUpperCase() + '</div><h1 class="text-4xl md:text-6xl font-bold text-white mb-2 drop-shadow-lg">' + p.titulo + '</h1><p class="text-lg text-gray-200 flex items-center gap-2"><svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>' + (p.barrio || 'Balcarce') + '</p></div></div></div><div class="container mx-auto px-6 max-w-6xl mb-24"><div class="grid lg:grid-cols-3 gap-12"><div class="lg:col-span-2 space-y-8"><div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm"><h3 class="text-2xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Descripcion</h3><p class="text-gray-600 text-lg leading-relaxed">' + (p.descripcion || 'Sin descripcion disponible.') + '</p></div>' + (caracteristicas.length > 0 ? '<div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm"><h3 class="text-2xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Caracteristicas</h3><div class="grid grid-cols-2 md:grid-cols-3 gap-4">' + caracteristicasHTML + '</div></div>' : '') + (galeria.length > 0 ? '<div><h3 class="text-2xl font-bold text-gray-900 mb-6">Galeria</h3><div class="flex overflow-x-auto gap-4 pb-4 hide-scrollbar">' + galeriaHTML + '</div></div>' : '') + '</div><div class="lg:col-span-1"><div class="bg-gray-50 p-8 rounded-3xl border border-gray-200 sticky top-24 shadow-sm"><h3 class="text-xl font-bold text-gray-900 mb-6">Resumen</h3><ul class="space-y-4 mb-8 text-gray-600"><li class="flex justify-between border-b border-gray-200 pb-2"><span>Operacion</span><strong class="text-gray-900">' + (p.operacion || 'Venta') + '</strong></li><li class="flex justify-between border-b border-gray-200 pb-2"><span>Precio</span><strong class="text-red-600 font-bold">' + precioTexto + '</strong></li>' + (p.dormitorios !== null ? '<li class="flex justify-between border-b border-gray-200 pb-2"><span>Dormitorios</span><strong class="text-gray-900">' + (p.dormitorios === 0 ? 'Monoambiente' : p.dormitorios) + '</strong></li>' : '') + (p.banos ? '<li class="flex justify-between border-b border-gray-200 pb-2"><span>Banos</span><strong class="text-gray-900">' + p.banos + '</strong></li>' : '') + '<li class="flex justify-between border-b border-gray-200 pb-2"><span>Superficie</span><strong class="text-gray-900">' + (p.superficie || 0) + ' m2</strong></li><li class="flex justify-between border-b border-gray-200 pb-2"><span>Tipo</span><strong class="text-gray-900">' + (p.tipo || 'Propiedad') + '</strong></li></ul><button onclick="document.getElementById(\'formPropiedad\'+' + p.id + ').scrollIntoView({behavior:\'smooth\'});" class="w-full bg-red-600 text-white hover:bg-red-700 font-bold py-4 rounded-xl transition-colors text-lg shadow-md">Consultar por esta propiedad</button></div></div></div></div><section id="formPropiedad' + p.id + '" class="py-16 bg-gray-50"><div class="container mx-auto px-6 max-w-2xl"><div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-xl"><h3 class="text-2xl font-bold text-gray-900 mb-2 text-center">Consultar por esta propiedad</h3><p class="text-gray-500 text-center mb-8">' + p.titulo + ' - ' + (p.barrio || 'Balcarce') + '</p><form id="contactForm' + p.id + '" onsubmit="enviarFormulario(event, ' + p.id + ')"><input type="hidden" name="propiedad_id" value="' + p.id + '"><input type="hidden" name="propiedad_titulo" value="' + p.titulo + '"><input type="hidden" name="propiedad_tipo" value="' + (p.tipo || '') + '"><input type="hidden" name="propiedad_operacion" value="' + (p.operacion || '') + '"><input type="hidden" name="propiedad_barrio" value="' + (p.barrio || '') + '"><input type="hidden" name="propiedad_precio" value="' + precioTexto + '"><input type="hidden" name="propiedad_url" value="' + window.location.href + '"><div class="grid md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label><input type="text" name="nombre" required class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Apellido *</label><input type="text" name="apellido" required class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all"></div></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-2">Email *</label><input type="email" name="email" required class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all"></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-2">Celular *</label><input type="tel" name="celular" required class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all" placeholder="+54 9 ..."></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-2">Interes *</label><select name="interes" required class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all"><option value="">Selecciona una opcion</option><option value="comprar">Estoy interesado en comprar</option><option value="viendo">Solo estoy viendo</option><option value="info">Solo quiero mas informacion</option></select></div><div class="mb-6"><label class="block text-sm font-medium text-gray-700 mb-2">Verificacion: ¿Cuanto es <span id="captchaNum1_' + p.id + '"></span> + <span id="captchaNum2_' + p.id + '"></span>? *</label><input type="number" name="captcha" id="captchaInput_' + p.id + '" required class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all" placeholder="Resultado"><input type="hidden" name="captcha_esperado" id="captchaEsperado_' + p.id + '"></div><button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg">Enviar consulta</button><p class="text-xs text-gray-400 text-center mt-4">Al enviar aceptas que te contactemos sobre esta propiedad.</p></form></div></div></section>';
 }
 
 function renderAdmin() {
@@ -206,7 +281,10 @@ function render() {
     const app = document.getElementById('app');
     if (state.cargando) { app.innerHTML = renderLoader(); return; }
     switch (state.vista) {
-        case 'detalle': app.innerHTML = renderDetalle(); break;
+        case 'detalle': 
+            app.innerHTML = renderDetalle(); 
+            setTimeout(function() { generarCaptcha(state.propiedadSeleccionada); }, 100);
+            break;
         case 'admin': app.innerHTML = renderAdmin(); break;
         case 'admin-edit': app.innerHTML = renderAdminEdit(); setTimeout(setupForm, 0); break;
         default: app.innerHTML = renderHome();
