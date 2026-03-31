@@ -1,14 +1,106 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import MediaUploader from './MediaUploader'
 import { slugify, formatPrecio } from '@/lib/utils/format'
+import { LOCALIDADES_DESTACADAS, LOCALIDADES_BUENOS_AIRES } from '@/lib/utils/localidades'
+import { Search, ChevronDown, MapPin } from 'lucide-react'
 
 interface PropertyFormProps {
   property?: Record<string, unknown>
+}
+
+function LocalidadSelector({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const filtered = search.trim()
+    ? LOCALIDADES_BUENOS_AIRES.filter(l => l.toLowerCase().includes(search.toLowerCase()))
+    : LOCALIDADES_BUENOS_AIRES
+
+  const destacadas = filtered.filter(l => LOCALIDADES_DESTACADAS.includes(l))
+  const resto = filtered.filter(l => !LOCALIDADES_DESTACADAS.includes(l)).sort((a, b) => a.localeCompare(b, 'es'))
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-primary text-left flex items-center justify-between"
+      >
+        <span className={value ? 'text-gray-900' : 'text-gray-400'}>
+          {value || 'Seleccionar localidad'}
+        </span>
+        <ChevronDown className="w-4 h-4 text-gray-400" />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-72 overflow-hidden">
+          <div className="p-2 border-b border-gray-100 sticky top-0 bg-white">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar localidad..."
+                className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-primary"
+                autoFocus
+              />
+            </div>
+          </div>
+          <div className="overflow-y-auto max-h-56">
+            {destacadas.length > 0 && (
+              <>
+                <p className="px-3 py-1.5 text-xs font-bold text-gray-400 uppercase">Destacadas</p>
+                {destacadas.map(l => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => { onChange(l); setOpen(false); setSearch('') }}
+                    className={`w-full text-left px-3 py-2.5 text-sm hover:bg-primary/5 flex items-center gap-2 ${value === l ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'}`}
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-primary" /> {l}
+                  </button>
+                ))}
+                <div className="border-t border-gray-100 my-1" />
+              </>
+            )}
+            {resto.length > 0 && (
+              <>
+                <p className="px-3 py-1.5 text-xs font-bold text-gray-400 uppercase">Todas</p>
+                {resto.map(l => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => { onChange(l); setOpen(false); setSearch('') }}
+                    className={`w-full text-left px-3 py-2.5 text-sm hover:bg-primary/5 ${value === l ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'}`}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </>
+            )}
+            {destacadas.length === 0 && resto.length === 0 && (
+              <p className="px-3 py-4 text-sm text-gray-400 text-center">No se encontraron localidades</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function PropertyForm({ property }: PropertyFormProps) {
@@ -29,6 +121,7 @@ export default function PropertyForm({ property }: PropertyFormProps) {
     banos: property?.banos != null ? String(property.banos) : '',
     superficie_total: property?.superficie_total != null ? String(property.superficie_total) : '',
     superficie_cubierta: property?.superficie_cubierta != null ? String(property.superficie_cubierta) : '',
+    localidad: (property?.localidad as string) || '',
     barrio: (property?.barrio as string) || '',
     direccion: (property?.direccion as string) || '',
     activo: property?.activo !== false,
@@ -64,6 +157,7 @@ export default function PropertyForm({ property }: PropertyFormProps) {
       banos: toNum(form.banos),
       superficie_total: toNum(form.superficie_total),
       superficie_cubierta: toNum(form.superficie_cubierta),
+      localidad: form.localidad || null,
       barrio: form.barrio || null,
       direccion: form.direccion || null,
       activo: form.activo,
@@ -169,10 +263,14 @@ export default function PropertyForm({ property }: PropertyFormProps) {
         <h3 className="text-lg font-bold text-gray-900 mb-4">Ubicacion</h3>
         <div className="grid md:grid-cols-2 gap-6">
           <div>
+            <label className={labelClass}>Localidad</label>
+            <LocalidadSelector value={form.localidad} onChange={v => update('localidad', v)} />
+          </div>
+          <div>
             <label className={labelClass}>Barrio</label>
             <input value={form.barrio} onChange={e => update('barrio', e.target.value)} className={inputClass} />
           </div>
-          <div>
+          <div className="md:col-span-2">
             <label className={labelClass}>Direccion</label>
             <input value={form.direccion} onChange={e => update('direccion', e.target.value)} className={inputClass} />
           </div>
@@ -211,8 +309,13 @@ export default function PropertyForm({ property }: PropertyFormProps) {
       {isEdit ? (
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">Media</h3>
-          <p className="text-sm text-gray-500 mb-4">Subi fotos y videos de la propiedad. La primera foto marcada como principal sera la portada.</p>
-          <MediaUploader propertyId={property!.id as string} existingMedia={(property!.property_media as Array<Record<string, unknown>>) || []} />
+          <p className="text-sm text-gray-500 mb-4">
+            Subi fotos y videos. Marca con la estrella cual es la portada (puede ser foto o video).
+          </p>
+          <MediaUploader
+            propertyId={property!.id as string}
+            existingMedia={(property!.property_media as Array<Record<string, unknown>>) || []}
+          />
         </div>
       ) : (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
