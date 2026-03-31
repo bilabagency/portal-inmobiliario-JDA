@@ -1,18 +1,24 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const pathname = usePathname()
+  const isLoginPage = pathname === '/admin/login'
   const [ready, setReady] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
+    if (isLoginPage) {
+      setReady(true)
+      return
+    }
     checkAuth()
-  }, [])
+  }, [isLoginPage])
 
   async function checkAuth() {
     const supabase = createClient()
@@ -34,6 +40,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!ready) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-100"><div className="w-10 h-10 border-4 border-gray-200 border-t-primary rounded-full animate-spin" /></div>
+  }
+
+  if (isLoginPage) {
+    return <>{children}</>
   }
 
   return (
