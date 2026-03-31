@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useDropzone } from 'react-dropzone'
-import { Upload } from 'lucide-react'
+import { Upload, Trash2 } from 'lucide-react'
 
 function ImageUploadSection({ label, currentUrl, bucketPath, configKey }: { label: string; currentUrl: string; bucketPath: string; configKey: string }) {
   const supabase = createClient()
@@ -28,16 +28,34 @@ function ImageUploadSection({ label, currentUrl, bucketPath, configKey }: { labe
     toast.success('Imagen actualizada')
   }, [bucketPath, configKey])
 
+  async function handleDelete() {
+    if (!confirm('¿Eliminar esta imagen?')) return
+    await supabase.from('site_config').update({ value: '' }).eq('key', configKey)
+    setUrl('')
+    toast.success('Imagen eliminada')
+  }
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'image/*': [] }, maxFiles: 1 })
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <h3 className="font-bold text-gray-900 mb-4">{label}</h3>
-      {url && <img src={url} alt={label} className="w-full max-w-md h-48 object-cover rounded-lg mb-4" />}
+      {url && (
+        <div className="relative inline-block mb-4">
+          <img src={url} alt={label} className="w-full max-w-md h-48 object-cover rounded-lg" />
+          <button
+            onClick={handleDelete}
+            className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg shadow-lg transition-colors"
+            title="Eliminar imagen"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary'}`}>
         <input {...getInputProps()} />
         <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-        <p className="text-gray-500 text-sm">{uploading ? 'Subiendo...' : 'Arrastra una imagen o hace click'}</p>
+        <p className="text-gray-500 text-sm">{uploading ? 'Subiendo...' : url ? 'Arrastra para reemplazar' : 'Arrastra una imagen o hace click'}</p>
       </div>
     </div>
   )
