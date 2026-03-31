@@ -1,11 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function AdminLoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -16,12 +14,35 @@ export default function AdminLoginPage() {
     setError('')
     setLoading(true)
     const supabase = createClient()
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+
+    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
     if (err) {
       setError(err.message)
       setLoading(false)
       return
     }
+
+    if (!data.session) {
+      setError('No se pudo iniciar sesion')
+      setLoading(false)
+      return
+    }
+
+    // Verify user is in admin_users
+    const { data: adminUser } = await supabase
+      .from('admin_users')
+      .select('id, rol')
+      .eq('id', data.session.user.id)
+      .single()
+
+    if (!adminUser) {
+      setError('No tenes permisos de administrador')
+      await supabase.auth.signOut()
+      setLoading(false)
+      return
+    }
+
+    // Force full reload to pick up session
     window.location.href = '/admin'
   }
 
