@@ -70,7 +70,7 @@ export default function LandingInformativo({ property, config }: LandingInformat
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{p.titulo as string}</h1>
             <p className="text-gray-300 flex items-center gap-2">
-              <MapPin className="w-4 h-4" /> {(p.barrio as string) || 'Balcarce'}, Buenos Aires
+              <MapPin className="w-4 h-4" /> {[p.barrio, p.localidad].filter(Boolean).join(', ') || 'Buenos Aires'}
             </p>
           </div>
         </div>

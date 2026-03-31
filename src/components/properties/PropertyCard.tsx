@@ -42,7 +42,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           <h3 className="font-bold text-xl text-gray-900 mt-1 mb-2">{p.titulo as string}</h3>
           <div className="flex items-center text-gray-500 text-sm mb-4 gap-2">
             <MapPin className="w-4 h-4" />
-            {(p.barrio as string) || 'Balcarce'}
+            {[p.barrio, p.localidad].filter(Boolean).join(', ') || 'Buenos Aires'}
           </div>
           <div className="flex justify-between items-center border-t border-gray-100 pt-4">
             <div className="flex gap-4 text-gray-600 text-sm">

@@ -14,13 +14,30 @@ interface LandingVisualProps {
   config: Record<string, string>
 }
 
+function buildUbicacion(p: Record<string, unknown>): string {
+  const parts: string[] = []
+  if (p.barrio) parts.push(p.barrio as string)
+  if (p.localidad) parts.push(p.localidad as string)
+  if (parts.length === 0) parts.push('Buenos Aires')
+  return parts.join(', ')
+}
+
 export default function LandingVisual({ property, config }: LandingVisualProps) {
   const p = property
   const media = ((p.property_media as Array<Record<string, unknown>>) || []).sort((a, b) => (a.orden as number) - (b.orden as number))
   const images = media.filter(m => m.tipo === 'imagen')
   const videos = media.filter(m => m.tipo === 'video')
-  const mainImage = images.find(m => m.es_principal)?.url as string || images[0]?.url as string || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=2000'
+
+  // Portada: buscar el media marcado como principal (puede ser foto o video)
+  const principal = media.find(m => m.es_principal)
+  const portadaEsVideo = principal?.tipo === 'video'
+  const portadaVideoUrl = portadaEsVideo ? principal?.url as string : null
+  const portadaImageUrl = !portadaEsVideo
+    ? (principal?.url as string || images[0]?.url as string || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=2000')
+    : (images[0]?.url as string || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=2000')
+
   const precioTexto = formatPrecio(p.precio as number | null, p.moneda as string | null)
+  const ubicacion = buildUbicacion(p)
 
   const [lightbox, setLightbox] = useState<number | null>(null)
 
@@ -47,7 +64,19 @@ export default function LandingVisual({ property, config }: LandingVisualProps) 
       {/* Hero fullscreen */}
       <div className="relative w-full h-[92vh] min-h-[600px] bg-gray-900 overflow-hidden">
         <div className="absolute inset-0 w-full h-full">
-          <img src={mainImage} alt={p.titulo as string} className="w-full h-full object-cover" />
+          {portadaEsVideo && portadaVideoUrl ? (
+            <ReactPlayer
+              src={portadaVideoUrl}
+              width="100%"
+              height="100%"
+              playing
+              muted
+              loop
+              style={{ position: 'absolute', top: 0, left: 0 }}
+            />
+          ) : (
+            <img src={portadaImageUrl} alt={p.titulo as string} className="w-full h-full object-cover" />
+          )}
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
 
@@ -63,7 +92,7 @@ export default function LandingVisual({ property, config }: LandingVisualProps) 
                 </h1>
                 <p className="text-xl text-gray-300 flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-red-500" />
-                  {(p.barrio as string) || 'Balcarce'}, Buenos Aires
+                  {ubicacion}
                 </p>
               </div>
               <div className="text-right">
@@ -261,7 +290,7 @@ export default function LandingVisual({ property, config }: LandingVisualProps) 
           alt="Logo"
           className="h-8 mx-auto mb-4 brightness-0 invert opacity-50"
         />
-        <p className="text-gray-500 text-sm">Rodriguez Alberghini | Balcarce, Buenos Aires</p>
+        <p className="text-gray-500 text-sm">Rodriguez Alberghini | {ubicacion}</p>
       </footer>
 
       {/* Lightbox */}
